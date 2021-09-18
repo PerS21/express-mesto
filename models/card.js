@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const mongoose = require('mongoose');
 
 const cardSchema = new mongoose.Schema({
@@ -6,24 +5,24 @@ const cardSchema = new mongoose.Schema({
     type: String,
     minlength: 2,
     maxlength: 30,
-    required: true
+    required: true,
   },
   link: {
     type: String,
-    required: true
+    required: true,
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
-    required: true
+    required: true,
   },
-  likes : {
+  likes: {
     type: Array,
-    default: []
+    default: [],
   },
-  createdAt : {
+  createdAt: {
     type: Date,
-    default: Date.now
+    default: Date,
   },
 });
 
