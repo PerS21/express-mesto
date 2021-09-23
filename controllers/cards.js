@@ -63,12 +63,21 @@ module.exports.getCardById = (req, res, next) => {
 };
 
 module.exports.deleteCardById = (req, res, next) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
     .then((card) => {
-      if (card) res.send({message: 'Карточка удалена'})
-      else res.status(404).send({
-        message: 'Карточка не найдена',
+      if (!card) res.status(404).send({message: 'Карточка не найдена'})
+      if (!(card.owner.toString() === req.user._id)) return res.status(403).send({
+        message: 'Недостаточно прав',
       });
+      Card.findByIdAndRemove(req.params.cardId)
+        .then((card) => {
+          if (card) res.send({
+            message: 'Карточка удалена'
+          })
+          else res.status(404).send({
+            message: 'Карточка не найдена',
+          });
+        })
     })
     .catch((error) => {
       if (error.name === 'CastError') {
