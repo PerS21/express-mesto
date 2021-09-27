@@ -1,4 +1,8 @@
 const Card = require('../models/card');
+const FoundError = require('../utils/errors/notFound');
+const ErrorCreating = require('../utils/errors/ErrorCreating');
+const ValidationError = require('../utils/errors/validationError');
+const NotEnoughRights = require('../utils/errors/notEnoughRights');
 
 module.exports.createCard = (req, res, next) => {
   const {
@@ -17,14 +21,10 @@ module.exports.createCard = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(404).send({
-          message: 'Ошибка при создании',
-        });
+        next(new ErrorCreating('Ошибка при создании'));
       }
       if (error.name === 'ValidationError') {
-        res.status(400).send({
-          message: 'Неправильные данные',
-        });
+        next(new ValidationError('Неправильные данные'));
         return
       }
       next(error);
@@ -36,9 +36,7 @@ module.exports.getCards = (req, res, next) => {
     .then((cards) => res.send(cards))
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(404).send({
-          message: 'Карточки не найдены',
-        });
+        next( new ValidationError('Карточки не найдены'))
       }
       next(error);
     });
@@ -48,15 +46,11 @@ module.exports.getCardById = (req, res, next) => {
   Card.findById(req.params.cardId)
     .then((card) => {
       if (card) res.send(card)
-      else res.status(404).send({
-        message: 'Карточка не найдена',
-      });
+      else next(new FoundError('Карточка не найдена'))
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка запроса',
-        });
+        next(new FoundError('Карточка не найдена'))
       }
       next(error);
     });
@@ -65,25 +59,20 @@ module.exports.getCardById = (req, res, next) => {
 module.exports.deleteCardById = (req, res, next) => {
   Card.findById(req.params.cardId)
     .then((card) => {
-      if (!card) res.status(404).send({message: 'Карточка не найдена'})
-      if (!(card.owner.toString() === req.user._id)) return res.status(403).send({
-        message: 'Недостаточно прав',
-      });
+      if (!card) next(new FoundError('Карточка не найдена'))
+      if (!(card.owner.toString() === req.user._id)) return next(new NotEnoughRights('Недостаточно прав'));
       Card.findByIdAndRemove(req.params.cardId)
         .then((card) => {
           if (card) res.send({
             message: 'Карточка удалена'
           })
-          else res.status(404).send({
-            message: 'Карточка не найдена',
-          });
+          else
+            next(new FoundError('Карточка не найдена'));
         })
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка запроса',
-        });
+        next(new FoundError('Карточка не найдена'));
       }
       next(error);
     });
@@ -97,12 +86,15 @@ module.exports.putLikes = (req, res, next) => {
     }, {
       new: true
     })
-    .then((card) => res.send(card))
+    .then((card) => {
+      if (card) {
+        return res.send(card)
+      }
+      next(new FoundError('Карточка не найдена'))
+    })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(404).send({
-          message: 'Ошибка при обновлении',
-        });
+        next(new FoundError('Карточка не найдена'))
       }
       next(error);
     });
@@ -116,12 +108,15 @@ module.exports.deleteLikes = (req, res, next) => {
     }, {
       new: true
     })
-    .then((card) => res.send(card))
+    .then((card) => {
+      if (card) {
+        return res.send(card)
+      }
+      next(new FoundError('Карточка не найдена'))
+    })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка при обновлении',
-        });
+        next(new FoundError('Карточка не найдена'))
       }
       next(error);
     });

@@ -2,6 +2,11 @@ const User = require('../models/user');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const ErrorCreating = require('../utils/errors/errorCreating');
+const UserDuplicate = require('../utils/errors/userDublicate');
+const FoundError = require('../utils/errors/notFound');
+const UpdateError = require('../utils/errors/updateError');
+const ValidationError = require('../utils/errors/validationError');
 
 const saltRounds = 10;
 
@@ -19,19 +24,13 @@ module.exports.createUser = (req, res, next) => {
     })
     .then((user) => {
       if (!validator.isEmail(email)) {
-        return res.status(400).send({
-          message: 'Невалидная почта',
-        })
+        return next(new ErrorCreating('Невалидная почта'));
       }
       if (user) {
-        return res.status(409).send({
-          message: 'Пользователь с такой очтой уже существует',
-        })
+        return next(new UserDuplicate('Пользователь с такой очтой уже существует'));
       };
       bcrypt.hash(password, saltRounds, function (err, hash) {
-        if (err) return res.status(500).send({
-          message: 'Ошабка создания пароля'
-        });
+        if (err) return next(new ErrorCreating('Ошибка при создании'));
         User.create({
             name,
             about,
@@ -48,10 +47,7 @@ module.exports.createUser = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка при создании',
-        });
-        return
+        next(new ErrorCreating('Ошибка при создании'));
       }
       next(error);
     })
@@ -62,9 +58,7 @@ module.exports.findUsers = (req, res, next) => {
     .then((users) => res.send(users))
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(404).send({
-          message: 'Пользователи не найдены',
-        });
+        next(new FoundError('Пользователи не найдены'));
         return
       }
       next(error);
@@ -75,15 +69,11 @@ module.exports.findByIdUsers = (req, res, next) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (user) res.send(user)
-      else res.status(404).send({
-        message: 'Пользователь не найден',
-      });
+      else next(new FoundError('Пользователь не найден'));
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка запроса',
-        });
+        next(new ErrorCreating('Ошибка запроса'));
       }
       next(error);
     });
@@ -100,14 +90,10 @@ module.exports.findByIdAndUpdateUser = (req, res, next) => {
     .then((user) => res.send(user))
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка при обновлении',
-        });
+        next(new UpdateError('Ошибка при обновлении'));
       }
       if (error.name === 'ValidationError') {
-        res.status(404).send({
-          message: 'Ошибка запроса',
-        });
+        next(new ValidationError('Ошибка запроса'));
         return
       }
       next(error);
@@ -121,14 +107,10 @@ module.exports.findById = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка при обновлении',
-        });
+        next(new UpdateError('Ошибка при обновлении'));
       }
       if (error.name === 'ValidationError') {
-        res.status(404).send({
-          message: 'Ошибка запроса',
-        });
+        next(new ValidationError('Ошибка запроса'));
         return
       }
       next(error);
@@ -145,14 +127,10 @@ module.exports.findByIdAndUpdateUserAvatar = (req, res, next) => {
     .then((user) => res.send(user))
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка при обновлении',
-        });
+        next(new UpdateError('Ошибка при обновлении'));
       }
       if (error.name === 'ValidationError') {
-        res.status(404).send({
-          message: 'Ошибка запроса',
-        });
+        next(new ValidationError('Ошибка запроса'));
         return
       }
       next(error);
@@ -166,9 +144,7 @@ module.exports.login = (req, res, next) => {
   } = req.body;
 
   if (!email || !password) {
-    return res.status(400).send({
-      message: 'Ошибка запроса'
-    })
+    return next(new ValidationError('Ошибка запроса'));
   }
 
   User.findOne({
@@ -176,19 +152,15 @@ module.exports.login = (req, res, next) => {
     }).select('+password')
     .then(user => {
       if (!user) {
-        return res.status(401).send({
-          message: 'Неправильная почта или пароль',
-        })
+        return next( new ValidationError('Неправильная почта или пароль'));
       }
       bcrypt.compare(password, user.password, function (err, result) {
         if (err) return res.status(500).send({
-          message: 'Ошабка проверки'
+          message: 'Ошибка проверки'
         });
 
         if (!result) {
-          return res.status(401).send({
-            message: 'Неправильная почта или пароль'
-          })
+          return next(new ValidationError('Неправильная почта или пароль'));
         }
 
         const token = jwt.sign({
@@ -205,9 +177,7 @@ module.exports.login = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        res.status(400).send({
-          message: 'Ошибка запроса',
-        });
+        next(new ValidationError('Ошибка запроса'));
       }
       next(error);
     });
