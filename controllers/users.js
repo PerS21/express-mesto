@@ -1,7 +1,7 @@
-const User = require('../models/user');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 const ErrorCreating = require('../utils/errors/errorCreating');
 const UserDuplicate = require('../utils/errors/userDublicate');
 const FoundError = require('../utils/errors/notFound');
@@ -21,29 +21,29 @@ module.exports.createUser = (req, res, next) => {
   } = req.body;
 
   User.findOne({
-      email
-    })
+    email,
+  })
     .then((user) => {
       if (!validator.isEmail(email)) {
         return next(new ErrorCreating('Невалидная почта'));
       }
       if (user) {
         return next(new UserDuplicate('Пользователь с такой очтой уже существует'));
-      };
-      bcrypt.hash(password, saltRounds, function (err, hash) {
+      }
+      bcrypt.hash(password, saltRounds, (err, hash) => {
         if (err) return next(new ErrorCreating('Ошибка при создании'));
         User.create({
-            name,
-            about,
-            avatar,
-            email,
-            password: hash,
-          })
-          .then((user) => {
+          name,
+          about,
+          avatar,
+          email,
+          password: hash,
+        })
+          .then((newUser) => {
             res.send({
-              data: user,
+              data: newUser,
             });
-          })
+          });
       });
     })
     .catch((error) => {
@@ -51,7 +51,7 @@ module.exports.createUser = (req, res, next) => {
         next(new ErrorCreating('Ошибка при создании'));
       }
       next(error);
-    })
+    });
 };
 
 module.exports.findUsers = (req, res, next) => {
@@ -60,7 +60,7 @@ module.exports.findUsers = (req, res, next) => {
     .catch((error) => {
       if (error.name === 'CastError') {
         next(new FoundError('Пользователи не найдены'));
-        return
+        return;
       }
       next(error);
     });
@@ -69,7 +69,7 @@ module.exports.findUsers = (req, res, next) => {
 module.exports.findByIdUsers = (req, res, next) => {
   User.findById(req.params.userId)
     .then((user) => {
-      if (user) res.send(user)
+      if (user) res.send(user);
       else next(new FoundError('Пользователь не найден'));
     })
     .catch((error) => {
@@ -82,12 +82,12 @@ module.exports.findByIdUsers = (req, res, next) => {
 
 module.exports.findByIdAndUpdateUser = (req, res, next) => {
   User.findByIdAndUpdate(req.user._id, {
-      name: req.body.name,
-      about: req.body.about,
-    }, {
-      new: true,
-      runValidators: true
-    })
+    name: req.body.name,
+    about: req.body.about,
+  }, {
+    new: true,
+    runValidators: true,
+  })
     .then((user) => res.send(user))
     .catch((error) => {
       if (error.name === 'CastError') {
@@ -95,7 +95,7 @@ module.exports.findByIdAndUpdateUser = (req, res, next) => {
       }
       if (error.name === 'ValidationError') {
         next(new ValidationError('Ошибка запроса'));
-        return
+        return;
       }
       next(error);
     });
@@ -103,28 +103,6 @@ module.exports.findByIdAndUpdateUser = (req, res, next) => {
 
 module.exports.findById = (req, res, next) => {
   User.findById(req.user._id)
-    .then((user) => {
-      return res.send(user)
-    })
-    .catch((error) => {
-      if (error.name === 'CastError') {
-        next(new UpdateError('Ошибка при обновлении'));
-      }
-      if (error.name === 'ValidationError') {
-        next(new ValidationError('Ошибка запроса'));
-        return
-      }
-      next(error);
-    });
-};
-
-module.exports.findByIdAndUpdateUserAvatar = (req, res, next) => {
-  User.findByIdAndUpdate(req.user._id, {
-      avatar: req.body.avatar,
-    }, {
-      new: true,
-      runValidators: true
-    })
     .then((user) => res.send(user))
     .catch((error) => {
       if (error.name === 'CastError') {
@@ -132,7 +110,27 @@ module.exports.findByIdAndUpdateUserAvatar = (req, res, next) => {
       }
       if (error.name === 'ValidationError') {
         next(new ValidationError('Ошибка запроса'));
-        return
+        return;
+      }
+      next(error);
+    });
+};
+
+module.exports.findByIdAndUpdateUserAvatar = (req, res, next) => {
+  User.findByIdAndUpdate(req.user._id, {
+    avatar: req.body.avatar,
+  }, {
+    new: true,
+    runValidators: true,
+  })
+    .then((user) => res.send(user))
+    .catch((error) => {
+      if (error.name === 'CastError') {
+        next(new UpdateError('Ошибка при обновлении'));
+      }
+      if (error.name === 'ValidationError') {
+        next(new ValidationError('Ошибка запроса'));
+        return;
       }
       next(error);
     });
@@ -149,31 +147,33 @@ module.exports.login = (req, res, next) => {
   }
 
   User.findOne({
-      email
-    }).select('+password')
-    .then(user => {
+    email,
+  }).select('+password')
+    .then((user) => {
       if (!user) {
-        return next( new ParamsError('Неправильная почта или пароль'));
+        return next(new ParamsError('Неправильная почта или пароль'));
       }
-      bcrypt.compare(password, user.password, function (err, result) {
-        if (err) return res.status(500).send({
-          message: 'Ошибка проверки'
-        });
+      bcrypt.compare(password, user.password, (err, result) => {
+        if (err) {
+          return res.status(500).send({
+            message: 'Ошибка проверки',
+          });
+        }
 
         if (!result) {
           return next(new ParamsError('Неправильная почта или пароль'));
         }
 
         const token = jwt.sign({
-          id: user._id
+          id: user._id,
         }, 'shhhhh', {
-          expiresIn: '1w'
+          expiresIn: '1w',
         });
 
         return res.status(200).send({
           _id: user._id,
           jwt: token,
-        })
+        });
       });
     })
     .catch((error) => {

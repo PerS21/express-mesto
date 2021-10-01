@@ -10,7 +10,7 @@ const cardSchema = new mongoose.Schema({
   link: {
     type: String,
     required: true,
-    validate: /https?:\/\/(www.)?\w/
+    validate: /https?:\/\/(www.)?\w/,
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
