@@ -10,9 +10,12 @@ const {
   celebrate,
   Joi
 } = require('celebrate');
+const validator = require("validator");
 
-const isURL = (value) => {
+const checkUrl = (value) => {
   let result = validator.isURL(value);
+  console.log(value)
+  console.log(result)
   if (result) {
     return value;
   } else {
@@ -30,11 +33,15 @@ router.patch('/me', celebrate({
 
 router.patch('/me/avatar',celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().required().custom(isURL)
+    avatar: Joi.string().required().custom(checkUrl)
   }),
 }), findByIdAndUpdateUserAvatar);
 
-router.get('/:userId', findByIdUsers);
+router.get('/:userId', celebrate({
+  params: Joi.object().keys({
+    userId: Joi.string().hex().length(24).required(),
+  }),
+}), findByIdUsers);
 
 router.get('/', findUsers);
 

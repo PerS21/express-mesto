@@ -12,6 +12,7 @@ const {
   errors,
   Joi
 } = require('celebrate');
+const validator = require('validator');
 
 const isURL = (value) => {
   let result = validator.isURL(value);

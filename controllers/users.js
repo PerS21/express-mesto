@@ -7,6 +7,7 @@ const UserDuplicate = require('../utils/errors/userDublicate');
 const FoundError = require('../utils/errors/notFound');
 const UpdateError = require('../utils/errors/updateError');
 const ValidationError = require('../utils/errors/validationError');
+const ParamsError = require('../utils/errors/paramsError');
 
 const saltRounds = 10;
 
@@ -73,7 +74,7 @@ module.exports.findByIdUsers = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        next(new ErrorCreating('Ошибка запроса'));
+        next(new ParamsError('Ошибка запроса'));
       }
       next(error);
     });
@@ -152,7 +153,7 @@ module.exports.login = (req, res, next) => {
     }).select('+password')
     .then(user => {
       if (!user) {
-        return next( new ValidationError('Неправильная почта или пароль'));
+        return next( new ParamsError('Неправильная почта или пароль'));
       }
       bcrypt.compare(password, user.password, function (err, result) {
         if (err) return res.status(500).send({
@@ -160,7 +161,7 @@ module.exports.login = (req, res, next) => {
         });
 
         if (!result) {
-          return next(new ValidationError('Неправильная почта или пароль'));
+          return next(new ParamsError('Неправильная почта или пароль'));
         }
 
         const token = jwt.sign({
